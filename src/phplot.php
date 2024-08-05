@@ -545,8 +545,10 @@ class phplot
     protected $title_color;
     /** Y offset of main title position  */
     protected $title_offset;
+    protected $sub_title_offset;
     /** Main title text */
     protected $title_txt = '';
+    protected $sub_title_txt = '';
     /** Total number of entries (rows times columns in each row) in the data array. */
     protected $total_records;
     /** Color (R,G,B,A) designated as transparent  */
@@ -947,6 +949,10 @@ class phplot
     public function SetTitleColor($which_color)
     {
         return (bool)($this->title_color = $this->SetRGBColor($which_color));
+    }
+    public function SetSubTitleColor($which_color)
+    {
+        return (bool)($this->sub_title_color = $this->SetRGBColor($which_color));
     }
 
     /**
@@ -1646,7 +1652,7 @@ class phplot
         if (
             !$this->CheckOption(
                 $which_elem,
-                'generic, title, legend, x_label, y_label, x_title, y_title',
+                'generic, title, sub_title, legend, x_label, y_label, x_title, y_title',
                 __FUNCTION__
             )
         ) {
@@ -3343,6 +3349,11 @@ class phplot
         $this->title_txt = $which_title;
         return true;
     }
+    public function SetSubTitle($which_title)
+    {
+        $this->sub_title_txt = $which_title;
+        return true;
+    }
 
     /**
      * Sets the X axis title, and optionally its position
@@ -3907,6 +3918,7 @@ class phplot
 
         // Handle defaults for X and Y title colors.
         $this->ndx_title_color   = $this->GetColorIndex($this->title_color);
+        $this->ndx_sub_title_color   = $this->GetColorIndex($this->sub_title_color);
         $this->ndx_x_title_color = $this->GetColorIndex($this->x_title_color, $this->ndx_title_color);
         $this->ndx_y_title_color = $this->GetColorIndex($this->y_title_color, $this->ndx_title_color);
 
@@ -4294,6 +4306,13 @@ class phplot
 
         // Calculate the title sizes (main here, axis titles below):
         list($unused, $title_height) = $this->SizeText('title', 0, $this->title_txt);
+        list($unused, $sub_title_height) = $this->SizeText('sub_title', 0, $this->sub_title_txt);
+
+        $this->sub_title_offset = $base_margin + $title_height + $gap;  // For use in DrawSubTitle
+
+        if ($sub_title_height > 0) {
+            $title_height += $sub_title_height + $gap;
+        }
 
         // Special case for maximum area usage with no X/Y titles or labels, only main title:
         if ($maximize) {
@@ -6263,6 +6282,24 @@ class phplot
         $this->DrawText('title', 0, $xpos, $ypos, $this->ndx_title_color, $this->title_txt, 'center', 'top');
 
         $this->done['title'] = true;
+        return true;
+    }
+
+    protected function DrawSubTitle()
+    {
+        if (!empty($this->done['subtitle']) || $this->sub_title_txt === '') {
+            return true;
+        }
+
+        // Right of the image:
+        $xpos = $this->image_width - 3 * $this->safe_margin;
+
+        // Place it at almost at the top
+        $ypos = $this->sub_title_offset;
+
+        $this->DrawText('sub_title', 0, $xpos, $ypos, $this->ndx_sub_title_color, $this->sub_title_txt, 'right', 'top');
+
+        $this->done['subtitle'] = true;
         return true;
     }
 
@@ -9730,6 +9767,7 @@ class phplot
         $this->DoCallback('draw_plotarea_background', $this->plot_area);
 
         $this->DrawTitle();
+        $this->DrawSubTitle();
         if ($draw_axes) {  // If no axes (pie chart), no axis titles either
             $this->DrawXTitle();
             $this->DrawYTitle();
